@@ -1,15 +1,16 @@
 ﻿# Learning Log
 
-这个项目是一个 **Markdown 写作 + HTML 生成** 的静态博客。
+这个项目现在是一个 **Markdown 写作 + GitHub 自动构建发布** 的静态博客。
 
-你以后主要写这些源文件：
+你平时主要维护这些源文件：
 
 - [content/home.md](E:\common\secondper.github.io\content\home.md)：首页介绍
 - [content/about.md](E:\common\secondper.github.io\content\about.md)：关于页面
 - [content/posts](E:\common\secondper.github.io\content\posts)：每一篇博客文章
 - [content/site.json](E:\common\secondper.github.io\content\site.json)：博客名称、作者名、链接等配置
+- [.github/workflows/pages.yml](E:\common\secondper.github.io\.github\workflows\pages.yml)：GitHub 自动构建与部署流程
 
-站点当前已经替换为：
+站点当前信息：
 
 - 作者：`Xie Chengdong`
 - 博客名：`Chengdong's Notes`
@@ -21,15 +22,15 @@
 在 `content/posts/` 里新建一个 Markdown 文件，建议文件名用：
 
 ```text
-2026-04-28-my-new-post.md
+2026-04-29-my-new-post.md
 ```
 
-文件开头保留这段元信息：
+文章开头保留这段元信息：
 
 ```md
 ---
 title: 文章标题
-date: 2026-04-28
+date: 2026-04-29
 tag: 标签
 reading_time: 阅读 5 分钟
 summary: 一句话摘要
@@ -48,25 +49,38 @@ summary: 一句话摘要
 - Markdown 链接
 - `**加粗**` 和 `*斜体*`
 
-## 生成网站
+## 本地预览
 
-在项目目录运行：
+如果你想在本地先看看效果：
 
 ```bash
 python build.py
 ```
 
-生成后会更新：
+生成后可以直接打开：
 
 - [index.html](E:\common\secondper.github.io\index.html)
 - [archive.html](E:\common\secondper.github.io\archive.html)
 - [about.html](E:\common\secondper.github.io\about.html)
-- [posts](E:\common\secondper.github.io\posts) 下的文章 HTML
 
-## 推荐工作流
+## 日常发布流程
 
-1. 平时只写 `content/posts/*.md`
-2. 写完后运行 `python build.py`
-3. 双击 [index.html](E:\common\secondper.github.io\index.html) 预览
-4. 后面再部署到 GitHub Pages
+现在你不需要再把生成出来的 HTML 手动提交到 GitHub 了。
 
+你以后通常只需要：
+
+1. 修改 `content/` 里的 Markdown 或配置
+2. 可选：本地运行 `python build.py` 预览
+3. 提交并推送：
+
+```bash
+git add .
+git commit -m "Add a new post"
+git push
+```
+
+推送后，GitHub Actions 会自动：
+
+1. 运行 `python build.py`
+2. 生成 HTML 页面
+3. 发布到 `https://secondper.github.io/`

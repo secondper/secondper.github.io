@@ -1,3 +1,7 @@
 ﻿__pycache__/
 *.pyc
-
+index.html
+about.html
+archive.html
+posts/
+_site/
