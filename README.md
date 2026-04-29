@@ -1,6 +1,6 @@
 ﻿# Learning Log
 
-这个项目现在是一个 **Markdown 写作 + HTML 生成** 的静态博客。
+这个项目是一个 **Markdown 写作 + HTML 生成** 的静态博客。
 
 你以后主要写这些源文件：
 
