@@ -1,6 +1,8 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
-index.html
-about.html
-archive.html
-_site/
+/index.html
+/about.html
+/archive.html
+/posts/
+/assets/
+/_site/

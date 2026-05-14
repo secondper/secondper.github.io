@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import shutil
 from pathlib import Path
 
 
@@ -10,6 +11,7 @@ ROOT = Path(__file__).parent
 CONTENT_DIR = ROOT / "content"
 POSTS_DIR = CONTENT_DIR / "posts"
 OUTPUT_POSTS_DIR = ROOT / "posts"
+OUTPUT_ASSETS_DIR = ROOT / "assets" / "posts"
 
 
 def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
@@ -33,11 +35,11 @@ def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
     return meta, body
 
 
-def normalize_url(url: str) -> str:
+def normalize_url(url: str, current_depth: int = 0) -> str:
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", url) or url.startswith(("/", "#", "..")):
         return url
     if url.startswith(".assets/"):
-        return "../content/posts/" + url
+        return ("../" * current_depth) + "assets/posts/" + url[len(".assets/") :]
     if url.startswith("./"):
         return "../" + url[2:]
     if url.startswith("."):
@@ -45,17 +47,17 @@ def normalize_url(url: str) -> str:
     return url
 
 
-def render_inline(text: str) -> str:
+def render_inline(text: str, current_depth: int = 0) -> str:
     escaped = html.escape(text)
 
     def repl_image(match: re.Match[str]) -> str:
         alt = html.escape(match.group(1))
-        src = normalize_url(html.escape(match.group(2).strip()))
+        src = normalize_url(html.escape(match.group(2).strip()), current_depth=current_depth)
         return f'<img src="{src}" alt="{alt}">'
 
     def repl_link(match: re.Match[str]) -> str:
         label = match.group(1)
-        href = normalize_url(html.escape(match.group(2).strip()))
+        href = normalize_url(html.escape(match.group(2).strip()), current_depth=current_depth)
         return f'<a href="{href}">{label}</a>'
 
     escaped = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", repl_image, escaped)
@@ -66,7 +68,7 @@ def render_inline(text: str) -> str:
     return escaped
 
 
-def markdown_to_html(text: str) -> str:
+def markdown_to_html(text: str, current_depth: int = 0) -> str:
     lines = text.splitlines()
     blocks: list[str] = []
     paragraph: list[str] = []
@@ -79,12 +81,12 @@ def markdown_to_html(text: str) -> str:
     def flush_paragraph() -> None:
         if paragraph:
             content = " ".join(line.strip() for line in paragraph)
-            blocks.append(f"<p>{render_inline(content)}</p>")
+            blocks.append(f"<p>{render_inline(content, current_depth=current_depth)}</p>")
             paragraph.clear()
 
     def flush_list() -> None:
         if list_items:
-            items = "".join(f"<li>{render_inline(item)}</li>" for item in list_items)
+            items = "".join(f"<li>{render_inline(item, current_depth=current_depth)}</li>" for item in list_items)
             blocks.append(f"<ul>{items}</ul>")
             list_items.clear()
 
@@ -103,7 +105,7 @@ def markdown_to_html(text: str) -> str:
             body_rows = table_rows[2:]
             thead = "".join(f"<th>{render_inline(cell)}</th>" for cell in header)
             tbody = "".join(
-                "<tr>" + "".join(f"<td>{render_inline(cell)}</td>" for cell in row) + "</tr>"
+                "<tr>" + "".join(f"<td>{render_inline(cell, current_depth=current_depth)}</td>" for cell in row) + "</tr>"
                 for row in body_rows
             )
             blocks.append(f"<table><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table>")
@@ -116,7 +118,7 @@ def markdown_to_html(text: str) -> str:
     def flush_quote() -> None:
         if quote_lines:
             content = " ".join(line.strip() for line in quote_lines if line.strip())
-            blocks.append(f"<blockquote><p>{render_inline(content)}</p></blockquote>")
+            blocks.append(f"<blockquote><p>{render_inline(content, current_depth=current_depth)}</p></blockquote>")
             quote_lines.clear()
 
     for raw_line in lines:
@@ -152,7 +154,7 @@ def markdown_to_html(text: str) -> str:
             flush_list()
             flush_quote()
             flush_table()
-            blocks.append(f"<h1>{render_inline(stripped[2:])}</h1>")
+            blocks.append(f"<h1>{render_inline(stripped[2:], current_depth=current_depth)}</h1>")
             continue
 
         if stripped.startswith("## "):
@@ -160,7 +162,7 @@ def markdown_to_html(text: str) -> str:
             flush_list()
             flush_quote()
             flush_table()
-            blocks.append(f"<h2>{render_inline(stripped[3:])}</h2>")
+            blocks.append(f"<h2>{render_inline(stripped[3:], current_depth=current_depth)}</h2>")
             continue
 
         if stripped.startswith("### "):
@@ -168,7 +170,7 @@ def markdown_to_html(text: str) -> str:
             flush_list()
             flush_quote()
             flush_table()
-            blocks.append(f"<h3>{render_inline(stripped[4:])}</h3>")
+            blocks.append(f"<h3>{render_inline(stripped[4:], current_depth=current_depth)}</h3>")
             continue
 
         if stripped.startswith("- "):
@@ -228,11 +230,11 @@ def load_site() -> dict[str, object]:
 
 
 def load_home() -> str:
-    return markdown_to_html((CONTENT_DIR / "home.md").read_text(encoding="utf-8"))
+    return markdown_to_html((CONTENT_DIR / "home.md").read_text(encoding="utf-8"), current_depth=0)
 
 
 def load_about() -> str:
-    return markdown_to_html((CONTENT_DIR / "about.md").read_text(encoding="utf-8"))
+    return markdown_to_html((CONTENT_DIR / "about.md").read_text(encoding="utf-8"), current_depth=0)
 
 
 def load_posts() -> list[dict[str, str]]:
@@ -248,7 +250,7 @@ def load_posts() -> list[dict[str, str]]:
                 "tag": meta.get("tag", ""),
                 "reading_time": meta.get("reading_time", ""),
                 "summary": meta.get("summary", ""),
-                "body_html": markdown_to_html(body),
+                "body_html": markdown_to_html(body, current_depth=1),
             }
         )
     posts.sort(key=lambda item: item["date"], reverse=True)
@@ -451,6 +453,23 @@ def remove_stale_post_files(posts: list[dict[str, str]]) -> None:
             path.unlink()
 
 
+def copy_post_assets() -> None:
+    source_dir = POSTS_DIR / ".assets"
+    OUTPUT_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+
+    valid_names = set()
+    if source_dir.exists():
+        for path in source_dir.iterdir():
+            if not path.is_file():
+                continue
+            valid_names.add(path.name)
+            shutil.copy2(path, OUTPUT_ASSETS_DIR / path.name)
+
+    for path in OUTPUT_ASSETS_DIR.iterdir():
+        if path.is_file() and path.name not in valid_names:
+            path.unlink()
+
+
 def main() -> None:
     site = load_site()
     posts = load_posts()
@@ -458,6 +477,7 @@ def main() -> None:
     about_html = load_about()
 
     remove_stale_post_files(posts)
+    copy_post_assets()
     write_file(ROOT / "index.html", build_index(site, home_html, posts))
     write_file(ROOT / "archive.html", build_archive(site, posts))
     write_file(ROOT / "about.html", build_about(site, about_html))
