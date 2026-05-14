@@ -5,7 +5,7 @@ tag: Reading Log
 reading_time: 阅读 5 分钟
 summary: 记录 Language Modeling Is Compression 这篇论文的阅读体会
 ---
-最近在开始思考生成与压缩的关系，老师推荐了这篇文章，从压缩的视角看待LLM作为无损压缩器（lossless compressor）[paper](https://arxiv.org/abs/2309.10668)
+>   最近在开始思考生成与压缩的关系，老师推荐了这篇文章，从压缩的视角看待LLM作为无损压缩器（lossless compressor）[paper](https://arxiv.org/abs/2309.10668)
 
 ## Arithmetic Encoding and Decoding
 ![arithmetic_coding](.assets/0513arithmetic_coding.png)
@@ -26,10 +26,14 @@ summary: 记录 Language Modeling Is Compression 这篇论文的阅读体会
 
 >   所以大语言模型的训练目标天然和压缩目标相统一。
 
-## 压缩器用于预测
+## 压缩器用于预测（生成模型）
 
 ![arithmetic_coding_compute](.assets/0513compressed_prediction.png)
 >   反过来看编码的过程，每编码一个字符就增加一定的比特数，所以实际上根据压缩模型可以得到在已知之前字符的前提下当前字符的条件分布（这个概率也很好计算，即把某个字符添加到当前序列后面看增加了几个比特，就可以根据2的负指数次方得到概率），所以还是一句话：压缩模型本身就是概率模型，根据一个概率模型就可以用于预测。
+
+>   用无损压缩的方式做text的压缩和生成是自然的，但是对于图像，音频这类信息，并不合适，逐步去生成会造成误差累计，导致最终的生成效果很差，实际上并不需要追求每个字节或者token的准确，重建质量和观感是更整体的评价。
+
+一个想法是：token对应codebook，还是用预测的训练方式，但是还要加入失真项。
 
 ## **通用编码（Universal Coding）**
 **以下为ChatGPT解释**
@@ -112,11 +116,18 @@ $$
 
 >   **Transformer 本质是在近似一个“受限的 Solomonoff 预测器”**
 
+## model-datasize tradeoff
+在**考虑模型大小**之后，压缩性能在随着数据集增大的过程中呈现先减小后增大的变化规律。实际上为scaling law提供了一个新视角，测试数据集越大，要达到更好的压缩性能需要更大的模型。
 
-## Abstract
-![abstract](.assets/0513abstract.png)
-- 预测模型可以转换为无损压缩器反之亦然
-- 论文从压缩的视角重新审视了scaling law, tokenization, in-context learning
-- 揭示了预测和压缩的等价性，因此可以用一个压缩器去构建一个条件生成模型
+## in-context learning
+作者的观点认为：语言模型相比传统压缩方法拥有更多的参数，对上下文有更好的理解，因而能在很短的序列下快速adapt，而传统方法则依靠序列中的dependence。二者都在序列长度增加时有更好的压缩性能。
+我的理解是：语言模型能够比传统方法有更好的性能，可能是因为它确实学习到了一些其他的信息能够更好的建立概率模型，这些信息是传统方法不知道的。
 
+## tokenization is compression
+分词实际上是一种无损压缩，这一步已经处理了一些冗余以及结构信息。
 
+增加字母表大小可以缩短序列长度使其包含更多信息，但由于字母表变大也让预测任务变得困难，降低条件分布的熵也更困难。
+
+所以增加字母表大小会减小序列长度增加预测任务难度，反之则会增加序列长度减小预测任务难度，理论上来说，对于这一种无损压缩两者应该会相互抵消，但实际情况并不是，对于小模型增加字母表大小对压缩有帮助，而对于大模型反而降低压缩性能。
+
+可能的解释：对于大模型来说，自身就可以学习到足够的信息进行压缩，字母表的大小可能会成为约束。
