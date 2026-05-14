@@ -115,7 +115,7 @@ def render_inline(text: str, current_depth: int = 0) -> str:
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
-    escaped = re.sub(r"(?<!!)\[([^\[\]\n]+)\]\(((?:https?://|/|\.{1,2}/|#)[^)\s]*)\)", repl_link, escaped)
+    escaped = re.sub(r"(?<!!)\[([^\[\]\n]+)\]\(((?:[a-zA-Z][a-zA-Z0-9+.-]*:|/|\.{1,2}/|#)[^)\s]*)\)", repl_link, escaped)
     escaped = render_math(escaped)
     return escaped
 
