@@ -199,6 +199,17 @@ a:hover {
   margin: 18px 0;
 }
 
+.math-inline math,
+.math-display math {
+  max-width: 100%;
+}
+
+.math-display {
+  display: block;
+  margin: 18px 0;
+  overflow-x: auto;
+}
+
 .post-page pre {
   overflow-x: auto;
   margin: 18px 0;

@@ -4,6 +4,7 @@ import html
 import json
 import re
 import shutil
+import sys
 from pathlib import Path
 
 
@@ -12,6 +13,15 @@ CONTENT_DIR = ROOT / "content"
 POSTS_DIR = CONTENT_DIR / "posts"
 OUTPUT_POSTS_DIR = ROOT / "posts"
 OUTPUT_ASSETS_DIR = ROOT / "assets" / "posts"
+VENDOR_DIR = ROOT / ".vendor"
+
+if VENDOR_DIR.exists():
+    sys.path.insert(0, str(VENDOR_DIR))
+
+try:
+    from latex2mathml.converter import convert as latex_to_mathml
+except ImportError:
+    latex_to_mathml = None
 
 
 def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
@@ -59,6 +69,34 @@ def parse_image_attrs(raw_attrs: str) -> str:
     return f' style="width: {width};"'
 
 
+def render_math_fragment(expr: str, display: bool) -> str:
+    if latex_to_mathml is None:
+        escaped = html.escape(expr)
+        class_name = "math-display" if display else "math-inline"
+        return f'<span class="{class_name}">{escaped}</span>'
+
+    display_mode = "block" if display else "inline"
+    mathml = latex_to_mathml(html.unescape(expr), display=display_mode)
+    class_name = "math-display" if display else "math-inline"
+    return f'<span class="{class_name}">{mathml}</span>'
+
+
+def render_math(text: str) -> str:
+    text = re.sub(
+        r"\$\$(.+?)\$\$",
+        lambda match: render_math_fragment(match.group(1).strip(), display=True),
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)",
+        lambda match: render_math_fragment(match.group(1).strip(), display=False),
+        text,
+        flags=re.DOTALL,
+    )
+    return text
+
+
 def render_inline(text: str, current_depth: int = 0) -> str:
     escaped = html.escape(text)
 
@@ -78,6 +116,7 @@ def render_inline(text: str, current_depth: int = 0) -> str:
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
     escaped = re.sub(r"(?<!!)\[([^\[\]\n]+)\]\(((?:https?://|/|\.{1,2}/|#)[^)\s]*)\)", repl_link, escaped)
+    escaped = render_math(escaped)
     return escaped
 
 
@@ -292,15 +331,6 @@ def page_template(title: str, body: str, current: str, brand: str, description: 
   <title>{html.escape(title)}</title>
   <meta name="description" content="{html.escape(description)}">
   <link rel="stylesheet" href="styles.css">
-  <script>
-    window.MathJax = {{
-      tex: {{
-        inlineMath: [["\\(", "\\)"], ["$", "$"]],
-        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
-      }}
-    }};
-  </script>
-  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
@@ -326,15 +356,6 @@ def post_template(title: str, body: str, meta: str, brand: str, description: str
   <title>{html.escape(title)} | {html.escape(brand)}</title>
   <meta name="description" content="{html.escape(description)}">
   <link rel="stylesheet" href="../styles.css">
-  <script>
-    window.MathJax = {{
-      tex: {{
-        inlineMath: [["\\(", "\\)"], ["$", "$"]],
-        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
-      }}
-    }};
-  </script>
-  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
