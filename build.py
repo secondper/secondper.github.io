@@ -33,13 +33,34 @@ def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
     return meta, body
 
 
+def normalize_url(url: str) -> str:
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", url) or url.startswith(("/", "#", "..")):
+        return url
+    if url.startswith("./"):
+        return "../" + url[2:]
+    if url.startswith("."):
+        return "../" + url
+    return url
+
+
 def render_inline(text: str) -> str:
     escaped = html.escape(text)
-    escaped = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r'<img src="\2" alt="\1">', escaped)
+
+    def repl_image(match: re.Match[str]) -> str:
+        alt = html.escape(match.group(1))
+        src = normalize_url(html.escape(match.group(2).strip()))
+        return f'<img src="{src}" alt="{alt}">'
+
+    def repl_link(match: re.Match[str]) -> str:
+        label = match.group(1)
+        href = normalize_url(html.escape(match.group(2).strip()))
+        return f'<a href="{href}">{label}</a>'
+
+    escaped = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", repl_image, escaped)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
-    escaped = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', escaped)
+    escaped = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", repl_link, escaped)
     return escaped
 
 
@@ -51,6 +72,7 @@ def markdown_to_html(text: str) -> str:
     in_code = False
     code_lines: list[str] = []
     quote_lines: list[str] = []
+    table_rows: list[list[str]] = []
 
     def flush_paragraph() -> None:
         if paragraph:
@@ -70,6 +92,25 @@ def markdown_to_html(text: str) -> str:
             blocks.append(f"<pre><code>{content}</code></pre>")
             code_lines.clear()
 
+
+    def flush_table() -> None:
+        if not table_rows:
+            return
+        if len(table_rows) >= 2 and all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in table_rows[1]):
+            header = table_rows[0]
+            body_rows = table_rows[2:]
+            thead = "".join(f"<th>{render_inline(cell)}</th>" for cell in header)
+            tbody = "".join(
+                "<tr>" + "".join(f"<td>{render_inline(cell)}</td>" for cell in row) + "</tr>"
+                for row in body_rows
+            )
+            blocks.append(f"<table><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table>")
+        else:
+            for row in table_rows:
+                paragraph.append(" | ".join(row))
+            flush_paragraph()
+        table_rows.clear()
+
     def flush_quote() -> None:
         if quote_lines:
             content = " ".join(line.strip() for line in quote_lines if line.strip())
@@ -83,6 +124,7 @@ def markdown_to_html(text: str) -> str:
             flush_paragraph()
             flush_list()
             flush_quote()
+            flush_table()
             if in_code:
                 flush_code()
                 in_code = False
@@ -100,12 +142,14 @@ def markdown_to_html(text: str) -> str:
             flush_paragraph()
             flush_list()
             flush_quote()
+            flush_table()
             continue
 
         if stripped.startswith("# "):
             flush_paragraph()
             flush_list()
             flush_quote()
+            flush_table()
             blocks.append(f"<h1>{render_inline(stripped[2:])}</h1>")
             continue
 
@@ -113,6 +157,7 @@ def markdown_to_html(text: str) -> str:
             flush_paragraph()
             flush_list()
             flush_quote()
+            flush_table()
             blocks.append(f"<h2>{render_inline(stripped[3:])}</h2>")
             continue
 
@@ -120,26 +165,49 @@ def markdown_to_html(text: str) -> str:
             flush_paragraph()
             flush_list()
             flush_quote()
+            flush_table()
             blocks.append(f"<h3>{render_inline(stripped[4:])}</h3>")
             continue
 
         if stripped.startswith("- "):
             flush_paragraph()
             flush_quote()
+            flush_table()
             list_items.append(stripped[2:])
             continue
 
         if stripped.startswith(">"):
             flush_paragraph()
             flush_list()
+            flush_table()
             quote_lines.append(stripped[1:].lstrip())
             continue
 
+        if re.fullmatch(r"(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,}", stripped):
+            flush_paragraph()
+            flush_list()
+            flush_quote()
+            flush_table()
+            blocks.append("<hr>")
+            continue
+
+        if "|" in stripped:
+            flush_paragraph()
+            flush_list()
+            flush_quote()
+            row = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(row) >= 2:
+                table_rows.append(row)
+                continue
+            flush_table()
+
+        flush_table()
         paragraph.append(stripped)
 
     flush_paragraph()
     flush_list()
     flush_quote()
+    flush_table()
     flush_code()
     return "\n".join(blocks)
 
