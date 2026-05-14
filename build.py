@@ -189,8 +189,8 @@ def page_template(title: str, body: str, current: str, brand: str, description: 
   <script>
     window.MathJax = {{
       tex: {{
-        inlineMath: [["\\\\(", "\\\\)"], ["$", "$"]],
-        displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]]
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
       }}
     }};
   </script>
@@ -223,8 +223,8 @@ def post_template(title: str, body: str, meta: str, brand: str, description: str
   <script>
     window.MathJax = {{
       tex: {{
-        inlineMath: [["\\\\(", "\\\\)"], ["$", "$"]],
-        displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]]
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
       }}
     }};
   </script>
