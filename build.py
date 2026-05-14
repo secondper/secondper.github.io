@@ -35,6 +35,7 @@ def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
 
 def render_inline(text: str) -> str:
     escaped = html.escape(text)
+    escaped = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r'<img src="\2" alt="\1">', escaped)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
@@ -49,6 +50,7 @@ def markdown_to_html(text: str) -> str:
     list_items: list[str] = []
     in_code = False
     code_lines: list[str] = []
+    quote_lines: list[str] = []
 
     def flush_paragraph() -> None:
         if paragraph:
@@ -68,12 +70,19 @@ def markdown_to_html(text: str) -> str:
             blocks.append(f"<pre><code>{content}</code></pre>")
             code_lines.clear()
 
+    def flush_quote() -> None:
+        if quote_lines:
+            content = " ".join(line.strip() for line in quote_lines if line.strip())
+            blocks.append(f"<blockquote><p>{render_inline(content)}</p></blockquote>")
+            quote_lines.clear()
+
     for raw_line in lines:
         line = raw_line.rstrip()
 
         if line.startswith("```"):
             flush_paragraph()
             flush_list()
+            flush_quote()
             if in_code:
                 flush_code()
                 in_code = False
@@ -90,35 +99,47 @@ def markdown_to_html(text: str) -> str:
         if not stripped:
             flush_paragraph()
             flush_list()
+            flush_quote()
             continue
 
         if stripped.startswith("# "):
             flush_paragraph()
             flush_list()
+            flush_quote()
             blocks.append(f"<h1>{render_inline(stripped[2:])}</h1>")
             continue
 
         if stripped.startswith("## "):
             flush_paragraph()
             flush_list()
+            flush_quote()
             blocks.append(f"<h2>{render_inline(stripped[3:])}</h2>")
             continue
 
         if stripped.startswith("### "):
             flush_paragraph()
             flush_list()
+            flush_quote()
             blocks.append(f"<h3>{render_inline(stripped[4:])}</h3>")
             continue
 
         if stripped.startswith("- "):
             flush_paragraph()
+            flush_quote()
             list_items.append(stripped[2:])
+            continue
+
+        if stripped.startswith(">"):
+            flush_paragraph()
+            flush_list()
+            quote_lines.append(stripped[1:].lstrip())
             continue
 
         paragraph.append(stripped)
 
     flush_paragraph()
     flush_list()
+    flush_quote()
     flush_code()
     return "\n".join(blocks)
 
@@ -186,6 +207,15 @@ def page_template(title: str, body: str, current: str, brand: str, description: 
   <title>{html.escape(title)}</title>
   <meta name="description" content="{html.escape(description)}">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    window.MathJax = {{
+      tex: {{
+        inlineMath: [["\\\\(", "\\\\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]]
+      }}
+    }};
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
@@ -211,6 +241,15 @@ def post_template(title: str, body: str, meta: str, brand: str, description: str
   <title>{html.escape(title)} | {html.escape(brand)}</title>
   <meta name="description" content="{html.escape(description)}">
   <link rel="stylesheet" href="../styles.css">
+  <script>
+    window.MathJax = {{
+      tex: {{
+        inlineMath: [["\\\\(", "\\\\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]]
+      }}
+    }};
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
