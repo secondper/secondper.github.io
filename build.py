@@ -36,8 +36,10 @@ def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
 def normalize_url(url: str) -> str:
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", url) or url.startswith(("/", "#", "..")):
         return url
+    if url.startswith("./"):
+        return "../" + url[2:]
     if url.startswith("."):
-        return "../" + url.lstrip("./")
+        return "../" + url
     return url
 
 
