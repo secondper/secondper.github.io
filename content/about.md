@@ -14,4 +14,4 @@
 
 如果这些内容刚好对你有帮助，或者你也在相似的学习阶段，欢迎交流。
 
-你可以通过 [xcd23@mail.ustc.edu.cn](mailto:xcd23@mail.ustc.edu.cn) 联系我，也可以访问我的 [GitHub](https://github.com/secondper)。
+你可以通过 <a href="mailto:xcd23@mail.ustc.edu.cn">xcd23@mail.ustc.edu.cn</a> 联系我，也可以访问我的 [GitHub](https://github.com/secondper)。
