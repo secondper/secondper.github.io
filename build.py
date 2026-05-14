@@ -98,6 +98,15 @@ def render_math(text: str) -> str:
 
 
 def render_inline(text: str, current_depth: int = 0) -> str:
+    raw_anchors: list[str] = []
+
+    def stash_anchor(match: re.Match[str]) -> str:
+        href = html.escape(match.group(1).strip())
+        label = html.escape(match.group(2))
+        raw_anchors.append(f'<a href="{normalize_url(href, current_depth=current_depth)}">{label}</a>')
+        return f"__RAW_ANCHOR_{len(raw_anchors) - 1}__"
+
+    text = re.sub(r"<a\s+href=[\"']([^\"']+)[\"']\s*>(.*?)</a>", stash_anchor, text, flags=re.IGNORECASE)
     escaped = html.escape(text)
 
     def repl_image(match: re.Match[str]) -> str:
@@ -117,6 +126,8 @@ def render_inline(text: str, current_depth: int = 0) -> str:
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
     escaped = re.sub(r"(?<!!)\[([^\[\]\n]+)\]\(((?:[a-zA-Z][a-zA-Z0-9+.-]*:|/|\.{1,2}/|#)[^)\s]*)\)", repl_link, escaped)
     escaped = render_math(escaped)
+    for i, anchor in enumerate(raw_anchors):
+        escaped = escaped.replace(f"__RAW_ANCHOR_{i}__", anchor)
     return escaped
 
 
