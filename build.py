@@ -186,6 +186,15 @@ def page_template(title: str, body: str, current: str, brand: str, description: 
   <title>{html.escape(title)}</title>
   <meta name="description" content="{html.escape(description)}">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    window.MathJax = {{
+      tex: {{
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+      }}
+    }};
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
@@ -211,6 +220,15 @@ def post_template(title: str, body: str, meta: str, brand: str, description: str
   <title>{html.escape(title)} | {html.escape(brand)}</title>
   <meta name="description" content="{html.escape(description)}">
   <link rel="stylesheet" href="../styles.css">
+  <script>
+    window.MathJax = {{
+      tex: {{
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+      }}
+    }};
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
