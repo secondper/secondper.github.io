@@ -47,20 +47,33 @@ def normalize_url(url: str, current_depth: int = 0) -> str:
     return url
 
 
+def parse_image_attrs(raw_attrs: str) -> str:
+    if not raw_attrs:
+        return ""
+
+    match = re.search(r"width\s*=\s*([0-9]+(?:\.[0-9]+)?(?:px|%))", raw_attrs)
+    if not match:
+        return ""
+
+    width = match.group(1)
+    return f' style="width: {width};"'
+
+
 def render_inline(text: str, current_depth: int = 0) -> str:
     escaped = html.escape(text)
 
     def repl_image(match: re.Match[str]) -> str:
         alt = html.escape(match.group(1))
         src = normalize_url(html.escape(match.group(2).strip()), current_depth=current_depth)
-        return f'<img src="{src}" alt="{alt}">'
+        attrs = parse_image_attrs(match.group(3) or "")
+        return f'<img src="{src}" alt="{alt}"{attrs}>'
 
     def repl_link(match: re.Match[str]) -> str:
         label = match.group(1)
         href = normalize_url(html.escape(match.group(2).strip()), current_depth=current_depth)
         return f'<a href="{href}">{label}</a>'
 
-    escaped = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", repl_image, escaped)
+    escaped = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]*)\})?", repl_image, escaped)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)

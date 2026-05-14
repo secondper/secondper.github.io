@@ -8,16 +8,16 @@ summary: 记录 Language Modeling Is Compression 这篇论文的阅读体会
 最近在开始思考生成与压缩的关系，老师推荐了这篇文章，从压缩的视角看待LLM作为无损压缩器（lossless compressor）[paper](https://arxiv.org/abs/2309.10668)
 
 ## Arithmetic Encoding and Decoding
-![arithmetic_coding](.assets/0513arithmetic_coding.png)
+![arithmetic_coding](.assets/0513arithmetic_coding.png){width=72%}
 
-![arithmetic_coding_explation](.assets/0513arithmetic_coding_explation.png)
+![arithmetic_coding_explation](.assets/0513arithmetic_coding_explation.png){width=72%}
 假设足够精确，算术编码本质上是用一段2进制码流来表示一个$[0,1)$上的数$\lambda$，从初始区间$[0,1)$开始通过条件概率分布逐步缩小这个区间，在这个最终的区间中选择一个具有最短2进制表示的$\lambda$，并用这个2进制表示作为$x_{1:n}$的编码结果。
 
-![arithmetic_coding](.assets/0513arithmetic_decoding.png)
+![arithmetic_coding](.assets/0513arithmetic_decoding.png){width=72%}
 解码的过程：和编码端具有相同的分布，并根据$\lambda$解码出长度为$k$的序列，从区间$[0,1)$开始，根据该流程分布得到$\lambda$在哪个区间，则解码出对应的字符，区间更新然后继续解码。
 ---
 **图一例子的具体计算见下图：**
-![arithmetic_coding_compute](.assets/0513arithmetic_coding_compute.png)
+![arithmetic_coding_compute](.assets/0513arithmetic_coding_compute.png){width=72%}
 
 ## 对数似然和损失函数
 用参数化的概率分布来进行估计，期望的比特数实际上为交叉熵，而LLM训练的损失函数也是交叉熵。
@@ -28,7 +28,7 @@ summary: 记录 Language Modeling Is Compression 这篇论文的阅读体会
 
 ## 压缩器用于预测（生成模型）
 
-![compressed_prediction](.assets/0513compressed_prediction.png)
+![compressed_prediction](.assets/0513compressed_prediction.png){width=72%}
 反过来看编码的过程，每编码一个字符就增加一定的比特数，所以实际上根据压缩模型可以得到在已知之前字符的前提下当前字符的条件分布（这个概率也很好计算，即把某个字符添加到当前序列后面看增加了几个比特，就可以根据2的负指数次方得到概率），所以还是一句话：压缩模型本身就是概率模型，根据一个概率模型就可以用于预测。
 
 用无损压缩的方式做text的压缩和生成是自然的，但是对于图像，音频这类信息，并不合适，逐步去生成会造成误差累计，导致最终的生成效果很差，实际上并不需要追求每个字节或者token的准确，重建质量和观感是更整体的评价。
