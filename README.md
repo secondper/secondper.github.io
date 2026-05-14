@@ -1,8 +1,6 @@
 ﻿# Learning Log
 
-这个项目现在是一个 **Markdown 写作 + GitHub 自动构建发布** 的静态博客。
-
-你平时主要维护这些源文件：
+这个项目是一个 **Markdown 写作 + GitHub 自动构建发布** 的静态博客。
 
 - [content/home.md](E:\common\secondper.github.io\content\home.md)：首页介绍
 - [content/about.md](E:\common\secondper.github.io\content\about.md)：关于页面
@@ -19,7 +17,7 @@
 
 ## 写新文章
 
-在 `content/posts/` 里新建一个 Markdown 文件，建议文件名用：
+在 `content/posts/` 里新建一个 Markdown 文件，文件名例如：
 
 ```text
 2026-04-29-my-new-post.md
@@ -39,16 +37,6 @@ summary: 一句话摘要
 
 后面直接写正文即可。
 
-## 当前支持的 Markdown
-
-- `#`、`##`、`###` 标题
-- 普通段落
-- `-` 无序列表
-- `` `行内代码` ``
-- 代码块
-- Markdown 链接
-- `**加粗**` 和 `*斜体*`
-
 ## 本地预览
 
 如果你想在本地先看看效果：
@@ -59,15 +47,15 @@ python build.py
 
 生成后可以直接打开：
 
-- [index.html](E:\common\secondper.github.io\index.html)
-- [archive.html](E:\common\secondper.github.io\archive.html)
-- [about.html](E:\common\secondper.github.io\about.html)
+- [index.html](./index.html)
+- [archive.html](./archive.html)
+- [about.html](./about.html)
 
 ## 日常发布流程
 
-现在你不需要再把生成出来的 HTML 手动提交到 GitHub 了。
+不需要把生成出来的 HTML 手动提交到 GitHub
 
-你以后通常只需要：
+通常只需要：
 
 1. 修改 `content/` 里的 Markdown 或配置
 2. 可选：本地运行 `python build.py` 预览
