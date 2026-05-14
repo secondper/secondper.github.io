@@ -6,6 +6,15 @@
   <title>Language Modeling Is Compression Reading | Chengdong&#x27;s Notes</title>
   <meta name="description" content="记录 Language Modeling Is Compression 这篇论文的阅读体会">
   <link rel="stylesheet" href="../styles.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\(", "\)"], ["$", "$"]],
+        displayMath: [["$$", "$$"], ["\[", "\]"]]
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
   <header class="header">
@@ -24,42 +33,47 @@
       <div class="meta">2026-05-13 · Reading Log · 阅读 5 分钟</div>
       <p>最近在开始思考生成与压缩的关系，老师推荐了这篇文章，从压缩的视角看待LLM作为无损压缩器（lossless compressor）<a href="https://arxiv.org/abs/2309.10668">paper</a></p>
 <h2>Arithmetic Encoding and Decoding</h2>
-<p>!<a href=".assets/0513arithmetic_coding.png">arithmetic_coding</a></p>
-<p>!<a href=".assets/0513arithmetic_coding_explation.png">arithmetic_coding_explation</a> 假设足够精确，算术编码本质上是用一段2进制码流来表示一个$[0,1)$上的数$\lambda$，从初始区间$[0,1)$开始通过条件概率分布逐步缩小这个区间，在这个最终的区间中选择一个具有最短2进制表示的$\lambda$，并用这个2进制表示作为$x_{1:n}$的编码结果。</p>
-<p>!<a href=".assets/0513arithmetic_decoding.png">arithmetic_coding</a> 解码的过程：和编码端具有相同的分布，并根据$\lambda$解码出长度为$k$的序列，从区间$<a href=".assets/0513arithmetic_coding_compute.png">0,1)$开始，根据该流程分布得到$\lambda$在哪个区间，则解码出对应的字符，区间更新然后继续解码。 --- <strong>图一例子的具体计算见下图：</strong> ![arithmetic_coding_compute</a></p>
+<p><img src="../content/posts/.assets/0513arithmetic_coding.png" alt="arithmetic_coding"></p>
+<p><img src="../content/posts/.assets/0513arithmetic_coding_explation.png" alt="arithmetic_coding_explation"> 假设足够精确，算术编码本质上是用一段2进制码流来表示一个$[0,1)$上的数$\lambda$，从初始区间$[0,1)$开始通过条件概率分布逐步缩小这个区间，在这个最终的区间中选择一个具有最短2进制表示的$\lambda$，并用这个2进制表示作为$x_{1:n}$的编码结果。</p>
+<p><img src="../content/posts/.assets/0513arithmetic_decoding.png" alt="arithmetic_coding"> 解码的过程：和编码端具有相同的分布，并根据$\lambda$解码出长度为$k$的序列，从区间$[0,1)$开始，根据该流程分布得到$\lambda$在哪个区间，则解码出对应的字符，区间更新然后继续解码。</p>
+<hr>
+<p><strong>图一例子的具体计算见下图：</strong> <img src="../content/posts/.assets/0513arithmetic_coding_compute.png" alt="arithmetic_coding_compute"></p>
 <h2>对数似然和损失函数</h2>
 <p>用参数化的概率分布来进行估计，期望的比特数实际上为交叉熵，而LLM训练的损失函数也是交叉熵。</p>
 <p>最小化交叉熵即最大化似然函数即最小化数据流的期望长度即最小化训练损失。</p>
 <p>所以大语言模型的训练目标天然和压缩目标相统一。</p>
 <h2>压缩器用于预测（生成模型）</h2>
-<p>!<a href=".assets/0513compressed_prediction.png">compressed_prediction</a> 反过来看编码的过程，每编码一个字符就增加一定的比特数，所以实际上根据压缩模型可以得到在已知之前字符的前提下当前字符的条件分布（这个概率也很好计算，即把某个字符添加到当前序列后面看增加了几个比特，就可以根据2的负指数次方得到概率），所以还是一句话：压缩模型本身就是概率模型，根据一个概率模型就可以用于预测。</p>
+<p><img src="../content/posts/.assets/0513compressed_prediction.png" alt="compressed_prediction"> 反过来看编码的过程，每编码一个字符就增加一定的比特数，所以实际上根据压缩模型可以得到在已知之前字符的前提下当前字符的条件分布（这个概率也很好计算，即把某个字符添加到当前序列后面看增加了几个比特，就可以根据2的负指数次方得到概率），所以还是一句话：压缩模型本身就是概率模型，根据一个概率模型就可以用于预测。</p>
 <p>用无损压缩的方式做text的压缩和生成是自然的，但是对于图像，音频这类信息，并不合适，逐步去生成会造成误差累计，导致最终的生成效果很差，实际上并不需要追求每个字节或者token的准确，重建质量和观感是更整体的评价。</p>
 <p>一个想法是：token对应codebook，还是用预测的训练方式，但是还要加入失真项。</p>
 <h2><strong>通用编码（Universal Coding）</strong></h2>
 <p><strong>以下为ChatGPT解释</strong></p>
 <p>在上文中，我们讨论的是针对来自某个固定分布 ( $\rho$ ) 的数据的最优（算术）编码。</p>
-<p>------</p>
+<hr>
 <p>与此相对，对于<strong>所有可计算的采样分布</strong>，理论上可以通过将编码长度 ( $\ell_c(x_{1:n})$ ) 选为序列 ( $x_{1:n}$ ) 的<strong>Kolmogorov复杂度</strong>来实现通用（最优）信源编码（Kolmogorov, 1998；Li &amp; Vitányi, 2019）。</p>
-<p>------</p>
+<hr>
 <p>在这种选择下，上述定义的条件分布在所有前缀 ( $x_{&lt;i}$ ) 上都是<strong>普适最优的</strong>，从而恢复了 <strong>Solomonoff 预测器</strong>（Solomonoff, 1964a,b；Rathmanner &amp; Hutter, 2011）。</p>
-<p>------</p>
+<hr>
 <p>Solomonoff 预测器是一个<strong>贝叶斯混合模型</strong>，它对所有可以在某个图灵完备编程语言中实现的预测器进行加权。</p>
-<p>------</p>
-<p>更具体地，对于一个预测器 ( $q$ )，其程序长度为 ( $\ell_c(q)$ ) 比特， Solomonoff 预测器为该预测器分配一个先验权重： $$ [ 2^{-\ell_c(q)} ] $$ ------</p>
-<p>也就是说，如果 ( $\mathcal{Q}$ ) 是所有可编程且可计算的预测器集合，那么 Solomonoff 预测器为序列 ( $x_{1:n}$ ) 分配的概率为： $$ [ S(x_{1:n}) = \sum_{q \in \mathcal{Q}} 2^{-\ell_c(q)} , q(x_{1:n}) ] $$ ------</p>
-<p>因此，对于所有 ( $q \in \mathcal{Q}$ )，都有： $$ [ S(x_{1:n}) \ge 2^{-\ell_c(q)} , q(x_{1:n}) ] $$ 从而得到： $$ [ -\log_2 S(x_{1:n}) \le -\log_2 q(x_{1:n}) + \ell_c(q) ] $$ ------</p>
+<hr>
+<p>更具体地，对于一个预测器 ( $q$ )，其程序长度为 ( $\ell_c(q)$ ) 比特， Solomonoff 预测器为该预测器分配一个先验权重： $$ [ 2^{-\ell_c(q)} ] $$</p>
+<hr>
+<p>也就是说，如果 ( $\mathcal{Q}$ ) 是所有可编程且可计算的预测器集合，那么 Solomonoff 预测器为序列 ( $x_{1:n}$ ) 分配的概率为： $$ [ S(x_{1:n}) = \sum_{q \in \mathcal{Q}} 2^{-\ell_c(q)} , q(x_{1:n}) ] $$</p>
+<hr>
+<p>因此，对于所有 ( $q \in \mathcal{Q}$ )，都有： $$ [ S(x_{1:n}) \ge 2^{-\ell_c(q)} , q(x_{1:n}) ] $$ 从而得到： $$ [ -\log_2 S(x_{1:n}) \le -\log_2 q(x_{1:n}) + \ell_c(q) ] $$</p>
+<hr>
 <p>注意，( $\ell_c(q)$ ) 是关于预测器 ( $q$ ) 的常数，与序列长度无关。</p>
-<p>------</p>
+<hr>
 <p>因此：</p>
 <p><strong>最优压缩 等价于 最优预测，反之亦然</strong>（Hutter, 2005）。</p>
-<p>------</p>
+<hr>
 <p>这段话本质在说：</p>
 <p><strong>如果你能考虑所有可能的可计算模型，并用程序长度做正则化（Occam），就能得到一个“理论上最优”的预测器与压缩器（Solomonoff）。</strong></p>
-<p>------</p>
+<hr>
 <p>这段隐含的是：</p>
 <h3>现代模型 ≈ Solomonoff 的近似</h3>
-<p>| 理论           | 现实              | | -------------- | ----------------- | | 所有程序       | 神经网络族        | | 程序长度 prior | 模型复杂度 / 正则 | | 贝叶斯混合     | 训练 + 参数学习   |</p>
-<p>------</p>
+<table><thead><tr><th>理论</th><th>现实</th></tr></thead><tbody><tr><td>所有程序</td><td>神经网络族</td></tr><tr><td>程序长度 prior</td><td>模型复杂度 / 正则</td></tr><tr><td>贝叶斯混合</td><td>训练 + 参数学习</td></tr></tbody></table>
+<hr>
 <p><strong>Transformer 本质是在近似一个“受限的 Solomonoff 预测器”</strong></p>
 <h2>model-datasize tradeoff</h2>
 <p>在<strong>考虑模型大小</strong>之后，压缩性能在随着数据集增大的过程中呈现先减小后增大的变化规律。实际上为scaling law提供了一个新视角，测试数据集越大，要达到更好的压缩性能需要更大的模型。</p>
