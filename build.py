@@ -36,6 +36,8 @@ def parse_front_matter(text: str) -> tuple[dict[str, str], str]:
 def normalize_url(url: str) -> str:
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", url) or url.startswith(("/", "#", "..")):
         return url
+    if url.startswith(".assets/"):
+        return "../content/posts/" + url
     if url.startswith("./"):
         return "../" + url[2:]
     if url.startswith("."):
@@ -60,7 +62,7 @@ def render_inline(text: str) -> str:
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", escaped)
-    escaped = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", repl_link, escaped)
+    escaped = re.sub(r"(?<!!)\[([^\[\]\n]+)\]\(((?:https?://|/|\.{1,2}/|#)[^)\s]*)\)", repl_link, escaped)
     return escaped
 
 
